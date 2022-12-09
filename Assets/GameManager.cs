@@ -8,7 +8,8 @@ public class GameManager : MonoBehaviour
 {
     public TextMeshProUGUI board;
     public ButtonVR button;
-    string lettersData = "vcdaxfgaxgbbxax";
+    public DisturbancesManager disturbances;
+    string lettersData = "vcda";
 
     // Start is called before the first frame update
     void Start()
@@ -27,17 +28,20 @@ public class GameManager : MonoBehaviour
     {
         button.ButtonPress.RemoveListener(StartGameAsync);
         board.text = "Lets Start...";
-        //StartCoroutine(WaitFor(5));
-        await Task.Delay(5000);
-        board.text = "NOW";
-        await Task.Delay(1000);
-        foreach(char c in lettersData)
+        await Task.Delay(2000);
+        disturbances.StartDisturbances(1f);
+        foreach (char c in lettersData)
         {
             board.text = c.ToString();
-            await Task.Delay(3000);
+            await Task.Delay(1000);
         }
-
-
+        disturbances.Stop();
+        board.text = "U R DONE";
+        await Task.Delay(2000);
+        string times = "";
+        foreach (var n in disturbances.TimesOfDisturbances)
+            times += n + ", ";
+        board.text = times;
     }
 
 
