@@ -9,11 +9,10 @@ public class DisturbancesManager : MonoBehaviour
 {
     public List<AudioSource> Sounds;
     public List<Animator> Animations;
-    public Animation an;
     private (float min, float max) epochRange;
     private float epoch;
     private int soundIndex = 0;
-    private int anumationIndex = 0;
+    private int animationIndex = 0;
     bool stop = false;
     public List<int> TimesOfDisturbances;
 
@@ -49,25 +48,24 @@ public class DisturbancesManager : MonoBehaviour
     private int PlaySound()
     {
         Random.InitState(DateTime.Now.Millisecond);
-        soundIndex = 0;//Random.Range(0, Sounds.Count);
+        soundIndex = Random.Range(0, Sounds.Count);
         Sounds[soundIndex].Play();
         return (int)Math.Max(1, Math.Ceiling(Sounds[soundIndex].clip.length));
     }
 
     internal int PlayDisturbance()
     {
-        return PlayAnimation();
-        /*bool isSound = Random.Range(0, 2) == 0;
+        bool isSound = false;// Random.Range(0, 2) == 0;
         if (isSound) return PlaySound();
-        else return PlayAnimation();*/
+        else return PlayAnimation();
     }
 
     private int PlayAnimation()
     {
         Random.InitState(DateTime.Now.Millisecond);
-        anumationIndex = 0;//Random.Range(0, Sounds.Count);
-        Animations[anumationIndex].Play("Fly");
-         return (int)Math.Max(1, Math.Ceiling(Animations[anumationIndex].GetCurrentAnimatorStateInfo(0).length));
+        animationIndex = 2;// Random.Range(0, Animations.Count);
+        Animations[animationIndex].Play("StartAnimate");
+        return (int)Math.Max(1, Math.Ceiling(Animations[animationIndex].GetCurrentAnimatorStateInfo(0).length));
     }
 
     internal void StartDisturbances(float minEpoch, float maxEpoch = -1f)

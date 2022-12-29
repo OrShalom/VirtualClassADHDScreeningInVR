@@ -11,7 +11,7 @@ public class GameManager : MonoBehaviour
     public ButtonVR button;
     public DisturbancesManager disturbances;
     public GameObject vrcam;
-    string lettersData = "123456789";
+    string lettersData = "123456789123456789123456789";
     int lettersDelayInSec;
     float time;
     List<float> PressedAndshould;
@@ -31,7 +31,7 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        board.text = $"{ (180 / Math.PI) * vrcam.transform.rotation.x},{ (180 / Math.PI) *vrcam.transform.rotation.y},{ (180 / Math.PI) *vrcam.transform.rotation.z }";
+       // board.text = $"{ (180 / Math.PI) * vrcam.transform.rotation.x},{ (180 / Math.PI) *vrcam.transform.rotation.y},{ (180 / Math.PI) *vrcam.transform.rotation.z }";
     }
 
     public async void StartGameAsync()
@@ -44,7 +44,7 @@ public class GameManager : MonoBehaviour
 
     IEnumerator LettersCoroutine()
     {
-        disturbances.StartDisturbances(3f);
+        disturbances.StartDisturbances(10f);
         bool pressed = false;
         button.ButtonPress.AddListener(() =>
         {

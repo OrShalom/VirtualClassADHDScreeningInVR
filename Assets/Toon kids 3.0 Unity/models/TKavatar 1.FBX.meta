@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 46ed376abb7e55e44bcb3e6409ec1e1c
+guid: 0a4e70585d72e874d85c7bf766dcf99a
 ModelImporter:
   serializedVersion: 21300
   internalIDToNameTable:
@@ -859,23 +859,23 @@ ModelImporter:
         length: 0
         modified: 0
     skeleton:
-    - name: TKavatar(Clone)
+    - name: TKavatar 1(Clone)
       parentName: 
       position: {x: 0, y: 0, z: 0}
-      rotation: {x: 0, y: 0.000000621085, z: 0, w: 1}
+      rotation: {x: 0, y: 0, z: 0, w: 1}
       scale: {x: 1, y: 1, z: 1}
     - name: BODY
-      parentName: TKavatar(Clone)
+      parentName: TKavatar 1(Clone)
       position: {x: -0, y: 0, z: 0}
       rotation: {x: 0.000000021855694, y: 0, z: -0, w: 1}
       scale: {x: 0.54405, y: 0.54405, z: 0.54405}
     - name: HEAD
-      parentName: TKavatar(Clone)
+      parentName: TKavatar 1(Clone)
       position: {x: -0, y: 0, z: 0}
       rotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071068}
       scale: {x: 1, y: 1, z: 1}
     - name: ROOT
-      parentName: TKavatar(Clone)
+      parentName: TKavatar 1(Clone)
       position: {x: -0, y: 0, z: 0.000000019073486}
       rotation: {x: -0.0000000059624403, y: 0, z: -0, w: 1}
       scale: {x: 1, y: 1, z: 1}
@@ -892,12 +892,12 @@ ModelImporter:
     - name: TK L Thigh
       parentName: TK Pelvis
       position: {x: 0.000000059604645, y: 0.000000078231096, z: 0.043306}
-      rotation: {x: -0.59258705, y: 0.8013683, z: -0.068463065, w: 0.04429773}
+      rotation: {x: -0.021522436, y: 0.9990933, z: -0.031771056, w: 0.018437447}
       scale: {x: 1.0000008, y: 1.0000006, z: 1.0000012}
     - name: TK L Calf
       parentName: TK L Thigh
-      position: {x: -0.15540862, y: -0.0000009238715, z: 0.00000006845213}
-      rotation: {x: -0.03926897, y: 0.055899102, z: 0.5734899, w: 0.8163594}
+      position: {x: -0.15541251, y: 0.0000004966275, z: 0.0000005029136}
+      rotation: {x: -0.063172415, y: 0.026000276, z: 0.04433032, w: 0.9966786}
       scale: {x: 1.0000005, y: 1.0000004, z: 1.0000005}
     - name: TK L Foot
       parentName: TK L Calf
@@ -912,12 +912,12 @@ ModelImporter:
     - name: TK R Thigh
       parentName: TK Pelvis
       position: {x: -0.000000059604645, y: -0.000000044703484, z: -0.043306}
-      rotation: {x: -0.57204986, y: 0.81753856, z: 0.04330647, w: -0.05014175}
+      rotation: {x: 0.0113952765, y: 0.9998372, z: 0.0051280265, w: 0.013017655}
       scale: {x: 1, y: 1, z: 1}
     - name: TK R Calf
       parentName: TK R Thigh
-      position: {x: -0.15540719, y: -0.0000007227063, z: -0.00000011455268}
-      rotation: {x: 0.034280583, y: -0.025853615, z: 0.5792684, w: 0.81400526}
+      position: {x: -0.15540719, y: -0.00000072811963, z: -0.000000115484}
+      rotation: {x: 0.042926893, y: -0.0009232311, z: -0.006172129, w: 0.9990588}
       scale: {x: 1.0000008, y: 1.000001, z: 1.0000004}
     - name: TK R Foot
       parentName: TK R Calf
