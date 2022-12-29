@@ -8,26 +8,36 @@ using Random = UnityEngine.Random;
 public class DisturbancesManager : MonoBehaviour
 {
     public List<AudioSource> Sounds;
+    public List<Animator> Animations;
+    public Animation an;
     private (float min, float max) epochRange;
     private float epoch;
     private int soundIndex = 0;
-    UnityEvent disturbanceEvent;
+    private int anumationIndex = 0;
     bool stop = false;
     public List<int> TimesOfDisturbances;
+
     IEnumerator AudioCoroutine()
     {
         while (!stop)
         {
             Random.InitState(System.DateTime.Now.Millisecond);
             epoch = Random.Range(epochRange.min, epochRange.max + 1);
-            
-            Console.WriteLine(epoch);
-            if (TimesOfDisturbances.Count > 0) TimesOfDisturbances.Add(TimesOfDisturbances[TimesOfDisturbances.Count - 1] + (int)epoch);
+
+            //Console.WriteLine(epoch);
+            if (TimesOfDisturbances.Count > 0)
+            {
+                TimesOfDisturbances.Add(TimesOfDisturbances[TimesOfDisturbances.Count - 1] + (int)epoch);
+            }
             else TimesOfDisturbances.Add((int)epoch);
-            yield return new WaitForSeconds(epoch);
+            yield return new WaitForSecondsRealtime(epoch-1);
             if (!stop)
             {
-                disturbanceEvent.Invoke();
+                var disturbanceLength = PlayDisturbance();
+                for (int i = 1; i < disturbanceLength; i++)
+                {
+                    TimesOfDisturbances.Add(TimesOfDisturbances[TimesOfDisturbances.Count - 1] + 1);
+                }
             }
             else if (TimesOfDisturbances.Count > 0)
             {
@@ -36,23 +46,28 @@ public class DisturbancesManager : MonoBehaviour
         }
     }
 
-    void Start()
+    private int PlaySound()
     {
-        disturbanceEvent = new UnityEvent();
-        epoch = 3.0f;
-        disturbanceEvent.AddListener(PlayDisturbance);
-    }
-
-    private void PlaySound()
-    {
-        Sounds[1].Play();
         Random.InitState(DateTime.Now.Millisecond);
-        soundIndex = Random.Range(0, Sounds.Count);
+        soundIndex = 0;//Random.Range(0, Sounds.Count);
+        Sounds[soundIndex].Play();
+        return (int)Math.Max(1, Math.Ceiling(Sounds[soundIndex].clip.length));
     }
 
-    internal void PlayDisturbance()
+    internal int PlayDisturbance()
     {
-        PlaySound();
+        return PlayAnimation();
+        /*bool isSound = Random.Range(0, 2) == 0;
+        if (isSound) return PlaySound();
+        else return PlayAnimation();*/
+    }
+
+    private int PlayAnimation()
+    {
+        Random.InitState(DateTime.Now.Millisecond);
+        anumationIndex = 0;//Random.Range(0, Sounds.Count);
+        Animations[anumationIndex].Play("Fly");
+         return (int)Math.Max(1, Math.Ceiling(Animations[anumationIndex].GetCurrentAnimatorStateInfo(0).length));
     }
 
     internal void StartDisturbances(float minEpoch, float maxEpoch = -1f)

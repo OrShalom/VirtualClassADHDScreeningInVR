@@ -10,8 +10,9 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI board;
     public ButtonVR button;
     public DisturbancesManager disturbances;
-    string lettersData = "vcda";
-    int lettersDelay;
+    public GameObject vrcam;
+    string lettersData = "123456789";
+    int lettersDelayInSec;
     float time;
     List<float> PressedAndshould;
     List<float> PressedAndshouldNot;
@@ -22,7 +23,7 @@ public class GameManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        lettersDelay = 1000;
+        lettersDelayInSec = 1;
         board.text = "Welcome to Virtual Classroom\n Press the button when you are ready!";
         button.ButtonPress.AddListener(StartGameAsync);
     }
@@ -30,7 +31,7 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
+        board.text = $"{ (180 / Math.PI) * vrcam.transform.rotation.x},{ (180 / Math.PI) *vrcam.transform.rotation.y},{ (180 / Math.PI) *vrcam.transform.rotation.z }";
     }
 
     public async void StartGameAsync()
@@ -38,7 +39,12 @@ public class GameManager : MonoBehaviour
         button.ButtonPress.RemoveListener(StartGameAsync);
         board.text = "Lets Start...";
         await Task.Delay(4000);
-        disturbances.StartDisturbances(1f);
+        StartCoroutine(LettersCoroutine());
+    }
+
+    IEnumerator LettersCoroutine()
+    {
+        disturbances.StartDisturbances(3f);
         bool pressed = false;
         button.ButtonPress.AddListener(() =>
         {
@@ -48,28 +54,26 @@ public class GameManager : MonoBehaviour
         {
             pressed = false;
             board.text = lettersData[i].ToString();
-            await Task.Delay(lettersDelay);
+            yield return new WaitForSecondsRealtime(lettersDelayInSec);
             if (pressed && ShouldPress(i))
             {
-                time = (i * lettersDelay) / (60 / 1000);
+                time = (i * lettersDelayInSec) / (60 / 1000);
                 PressedAndshould.Add(time);
             }
             if (pressed && !ShouldPress(i))
             {
-               time = (i * lettersDelay) / (60 / 1000);
+                time = (i * lettersDelayInSec) / (60 / 1000);
                 PressedAndshouldNot.Add(time);
             }
-            if(!pressed && ShouldPress(i))
+            if (!pressed && ShouldPress(i))
             {
-                time = (i * lettersDelay) / (60 / 1000);
+                time = (i * lettersDelayInSec) / (60 / 1000);
                 NotPressedAndshould.Add(time);
             }
-
-
         }
         disturbances.Stop();
         board.text = "U R DONE";
-        await Task.Delay(2000);
+        yield return new WaitForSecondsRealtime(2f);
         string times = "";
         foreach (var n in disturbances.TimesOfDisturbances)
             times += n + ", ";
@@ -79,10 +83,5 @@ public class GameManager : MonoBehaviour
     private bool ShouldPress(int i)
     {
         return i != 0 && lettersData[i] == 'x' && lettersData[i - 1] == 'a';
-    }
-
-    IEnumerator WaitFor(int seconds)
-    {
-        yield return new WaitForSeconds(seconds);
     }
 }
