@@ -44,7 +44,7 @@ public class GameManager : MonoBehaviour
 
     IEnumerator LettersCoroutine()
     {
-        disturbances.StartDisturbances(10f);
+        disturbances.StartDisturbances(5f);
         bool pressed = false;
         button.ButtonPress.AddListener(() =>
         {

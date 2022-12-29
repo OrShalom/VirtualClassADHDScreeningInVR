@@ -55,7 +55,7 @@ public class DisturbancesManager : MonoBehaviour
 
     internal int PlayDisturbance()
     {
-        bool isSound = false;// Random.Range(0, 2) == 0;
+        bool isSound = Random.Range(0, 2) == 0;
         if (isSound) return PlaySound();
         else return PlayAnimation();
     }
@@ -63,7 +63,7 @@ public class DisturbancesManager : MonoBehaviour
     private int PlayAnimation()
     {
         Random.InitState(DateTime.Now.Millisecond);
-        animationIndex = 2;// Random.Range(0, Animations.Count);
+        animationIndex = Random.Range(0, Animations.Count);
         Animations[animationIndex].Play("StartAnimate");
         return (int)Math.Max(1, Math.Ceiling(Animations[animationIndex].GetCurrentAnimatorStateInfo(0).length));
     }
