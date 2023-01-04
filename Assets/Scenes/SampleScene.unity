@@ -226,9 +226,9 @@ Animator:
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorControllerStateOnDisable: 0
---- !u!1 &91326433 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 4421707979281430028, guid: d143cb40312e0a54d9e7046abc98e681, type: 3}
+--- !u!4 &91326437 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4421707979281394220, guid: d143cb40312e0a54d9e7046abc98e681, type: 3}
   m_PrefabInstance: {fileID: 1856926341}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &109147120
@@ -1887,6 +1887,24 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4525299494038442, guid: ec15f5ae191975f4d8de236356aaec36, type: 3}
   m_PrefabInstance: {fileID: 444308396}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &506008697 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4421707979281430024, guid: d143cb40312e0a54d9e7046abc98e681, type: 3}
+  m_PrefabInstance: {fileID: 1856926341}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &506008700
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 506008697}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 774604c8085c11f41a700ffe2c9172fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  HeadTransform: {fileID: 91326437}
 --- !u!1001 &509146828
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3990,6 +4008,18 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 4421707979281394216, guid: d143cb40312e0a54d9e7046abc98e681, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4421707979281394216, guid: d143cb40312e0a54d9e7046abc98e681, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4421707979281394216, guid: d143cb40312e0a54d9e7046abc98e681, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5563555807405043831, guid: d143cb40312e0a54d9e7046abc98e681, type: 3}
       propertyPath: m_LocalRotation.w
       value: -0.43949628
@@ -4229,7 +4259,7 @@ MonoBehaviour:
   board: {fileID: 188054332}
   button: {fileID: 223974228}
   disturbances: {fileID: 265236431}
-  vrcam: {fileID: 91326433}
+  HeadTracker: {fileID: 506008700}
 --- !u!4 &1991027611 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4958632569050222, guid: 076d1c3e039b44b4086785803f04942f, type: 3}

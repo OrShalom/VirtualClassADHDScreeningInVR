@@ -1,3 +1,5 @@
+using Assets.Model;
+using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -11,7 +13,7 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI board;
     public ButtonVR button;
     public DisturbancesManager disturbances;
-    public GameObject vrcam;
+    public HeadTracker HeadTracker;
     string lettersData = "123456789123456789123456789";
     int lettersDelayInSec;
     float time;
@@ -19,50 +21,100 @@ public class GameManager : MonoBehaviour
     List<float> PressedAndshouldNot;
     List<float> NotPressedAndshould;
     QueueHandler startScreeningQueue;
-
+    QueueHandler stopScreeningQueue;
+    QueueHandler finishScreeningQueue;
+    bool readMessage = false;
+    bool stopGame = false;
+    Patient patient;
 
 
     // Start is called before the first frame update
     void Start()
     {
+        lettersDelayInSec = 1;
+        InitQueueHandlers();
+        RestartGame();
+    }
+
+    private void InitQueueHandlers()
+    {
         startScreeningQueue = new QueueHandler("StartScreening");
+        stopScreeningQueue = new QueueHandler("StopScreening");
+        finishScreeningQueue = new QueueHandler("FinishScreening");
         startScreeningQueue.SubscribeToQueue((model, ea) =>
         {
-            var body = ea.Body;
-            var message = System.Text.Encoding.UTF8.GetString(body.ToArray());
+            var message = System.Text.Encoding.UTF8.GetString(ea.Body.ToArray());
+            try
+            {
+                patient = JsonConvert.DeserializeObject<Patient>(message);
+
+                Debug.Log($" [x] Received {message}");
+                readMessage = true;
+            }
+            catch (Exception) { }
+        });
+        stopScreeningQueue.SubscribeToQueue((model, ea) =>
+        {
+            var message = System.Text.Encoding.UTF8.GetString(ea.Body.ToArray());
 
             Debug.Log($" [x] Received {message}");
+            stopGame = true;
         });
-        lettersDelayInSec = 1;
-        board.text = "Waiting for the screening to start";
-        board.text = "Welcome to Virtual Classroom\n Press the button when you are ready!";
-        button.ButtonPress.AddListener(StartGameAsync);
+    }
+
+    void RestartGame()
+    {
+        board.text = "Welcome to Virtual Classroom\nWaiting for the screening to start";
+        readMessage = false;
+        stopGame = false;
+        patient = new Patient();
+        PressedAndshould = new List<float>();
+        PressedAndshouldNot = new List<float>();
+        NotPressedAndshould = new List<float>();
+        disturbances.Stop();
+        HeadTracker.StopTracking();
     }
 
     // Update is called once per frame
     void Update()
     {
+        if(readMessage)
+        {
+            board.text = "Press the button when you are ready!";
+            button.ButtonPress.AddListener(StartGameAsync);
+            readMessage = false;
+        }
     }
 
-    public async void StartGameAsync()
+    public void StartGameAsync()
     {
-
         button.ButtonPress.RemoveListener(StartGameAsync);
-        board.text = "Lets Start...";
-        await Task.Delay(4000);
-        StartCoroutine(LettersCoroutine());
+        StartCoroutine(GameCoroutine());
     }
 
-    IEnumerator LettersCoroutine()
+    IEnumerator GameCoroutine()
     {
-        disturbances.StartDisturbances(5f);
+        Report report = new Report();
+        report.Time = DateTime.Now;
+        report.PatientId = patient.EmailAddress;
         bool pressed = false;
         button.ButtonPress.AddListener(() =>
         {
             pressed = true;
         });
+        board.text = "Lets Start...";
+        yield return new WaitForSecondsRealtime(4);
+        disturbances.StartDisturbances(5f);
+        HeadTracker.StartTracking();
         for (int i = 0; i < lettersData.Length; i++)
         {
+            if(stopGame)
+            {
+                board.text = "Screening Stopped";
+                yield return new WaitForSecondsRealtime(4);
+                RestartGame();
+                yield break;
+            }
             pressed = false;
             board.text = lettersData[i].ToString();
             yield return new WaitForSecondsRealtime(lettersDelayInSec);
@@ -83,12 +135,18 @@ public class GameManager : MonoBehaviour
             }
         }
         disturbances.Stop();
-        board.text = "U R DONE";
-        yield return new WaitForSecondsRealtime(2f);
-        string times = "";
-        foreach (var n in disturbances.TimesOfDisturbances)
-            times += n + ", ";
-        board.text = times;
+        report.HeadRotation = HeadTracker.StopTracking();
+        report.PressedAndshould = PressedAndshould;
+        report.NotPressedAndshould = NotPressedAndshould;
+        report.PressedAndshouldNot= PressedAndshouldNot;
+        finishScreeningQueue.SendMessageToQ(JsonConvert.SerializeObject(report));
+        board.text = "Screening Has Finished";
+        yield return new WaitForSecondsRealtime(3f);
+        RestartGame();
+        //string times = "";
+        //foreach (var n in disturbances.TimesOfDisturbances)
+        //    times += n + ", ";
+        //board.text = times;
     }
 
     private bool ShouldPress(int i)
