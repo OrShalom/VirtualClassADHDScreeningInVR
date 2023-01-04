@@ -1273,7 +1273,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4467140028628036, guid: e71f88c62ec6ec749b9da3c66033409a, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.07876015
+      value: -0.099
       objectReference: {fileID: 0}
     - target: {fileID: 4467140028628036, guid: e71f88c62ec6ec749b9da3c66033409a, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1361,7 +1361,6 @@ MonoBehaviour:
   Animations:
   - {fileID: 1622664055}
   - {fileID: 699634870}
-  - {fileID: 934205158}
   TimesOfDisturbances: 
 --- !u!82 &265236432
 AudioSource:
@@ -2082,7 +2081,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4045696219899550, guid: 924e5835feca5774baf83fefc095dad6, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.037239075
+      value: 0.019
       objectReference: {fileID: 0}
     - target: {fileID: 4045696219899550, guid: 924e5835feca5774baf83fefc095dad6, type: 3}
       propertyPath: m_LocalPosition.z
