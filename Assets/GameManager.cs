@@ -14,7 +14,8 @@ public class GameManager : MonoBehaviour
     public ButtonVR button;
     public DisturbancesManager disturbances;
     public HeadTracker HeadTracker;
-    string lettersData = "123456789123456789123456789";
+    private bool pressed;
+    string lettersData = "123456789";
     int lettersDelayInSec;
     float time;
     List<float> PressedAndshould;
@@ -32,6 +33,10 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         lettersDelayInSec = 1;
+        button.ButtonPress.AddListener(() =>
+        {
+            pressed = true;
+        });
         InitQueueHandlers();
         RestartGame();
     }
@@ -78,7 +83,7 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if(readMessage)
+        if (readMessage)
         {
             board.text = "Press the button when you are ready!";
             button.ButtonPress.AddListener(StartGameAsync);
@@ -94,21 +99,48 @@ public class GameManager : MonoBehaviour
 
     IEnumerator GameCoroutine()
     {
-        Report report = new Report();
-        report.Time = DateTime.Now;
-        report.PatientId = patient.EmailAddress;
-        bool pressed = false;
-        button.ButtonPress.AddListener(() =>
+        Report report = new Report
         {
-            pressed = true;
-        });
+            Time = DateTime.Now,
+            PatientId = patient.EmailAddress
+        };
+        Session session= new Session();
         board.text = "Lets Start...";
         yield return new WaitForSecondsRealtime(4);
+        HeadTracker.StartTracking();
+        yield return StartSession();
+        UpdateSessionData(session);
+        report.SessionWithoutDisturbances = session;
+        board.text = "First session has done";
+        session = new Session();
+        yield return new WaitForSecondsRealtime(10f);//Decide the break time 
+        board.text = "Second session is Starting...";
         disturbances.StartDisturbances(5f);
         HeadTracker.StartTracking();
+        yield return StartSession();
+        disturbances.Stop();
+        UpdateSessionData(session);
+        report.SessionWithDisturbances = session;
+        board.text = "Second session has done";
+        finishScreeningQueue.SendMessageToQ(JsonConvert.SerializeObject(report));
+        board.text = "Screening Has Finished";
+        yield return new WaitForSecondsRealtime(3f);
+        RestartGame();
+    }
+
+    private void UpdateSessionData(Session session)
+    {
+        session.HeadRotation = HeadTracker.StopTracking();
+        session.PressedAndshould = PressedAndshould;
+        session.NotPressedAndshould = NotPressedAndshould;
+        session.PressedAndshouldNot = PressedAndshouldNot;
+    }
+
+    private IEnumerator StartSession()
+    {
         for (int i = 0; i < lettersData.Length; i++)
         {
-            if(stopGame)
+            if (stopGame)
             {
                 board.text = "Screening Stopped";
                 yield return new WaitForSecondsRealtime(4);
@@ -134,19 +166,6 @@ public class GameManager : MonoBehaviour
                 NotPressedAndshould.Add(time);
             }
         }
-        disturbances.Stop();
-        report.HeadRotation = HeadTracker.StopTracking();
-        report.PressedAndshould = PressedAndshould;
-        report.NotPressedAndshould = NotPressedAndshould;
-        report.PressedAndshouldNot= PressedAndshouldNot;
-        finishScreeningQueue.SendMessageToQ(JsonConvert.SerializeObject(report));
-        board.text = "Screening Has Finished";
-        yield return new WaitForSecondsRealtime(3f);
-        RestartGame();
-        //string times = "";
-        //foreach (var n in disturbances.TimesOfDisturbances)
-        //    times += n + ", ";
-        //board.text = times;
     }
 
     private bool ShouldPress(int i)
