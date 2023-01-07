@@ -7,6 +7,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
+using Random = UnityEngine.Random;
+
 
 public class GameManager : MonoBehaviour
 {
@@ -15,8 +17,7 @@ public class GameManager : MonoBehaviour
     public DisturbancesManager disturbances;
     public HeadTracker HeadTracker;
     private bool pressed;
-    string lettersData = "123456789";
-    int lettersDelayInSec;
+    char[] lettersDataList;
     float time;
     List<float> PressedAndshould;
     List<float> PressedAndshouldNot;
@@ -27,12 +28,12 @@ public class GameManager : MonoBehaviour
     bool readMessage = false;
     bool stopGame = false;
     Patient patient;
+    SessionConfiguration sessionConfiguration;
 
 
     // Start is called before the first frame update
     void Start()
     {
-        lettersDelayInSec = 1;
         button.ButtonPress.AddListener(() =>
         {
             pressed = true;
@@ -48,12 +49,15 @@ public class GameManager : MonoBehaviour
         finishScreeningQueue = new QueueHandler("FinishScreening");
         startScreeningQueue.SubscribeToQueue((model, ea) =>
         {
-            var message = System.Text.Encoding.UTF8.GetString(ea.Body.ToArray());
             try
             {
-                patient = JsonConvert.DeserializeObject<Patient>(message);
-
+                var message = System.Text.Encoding.UTF8.GetString(ea.Body.ToArray());
                 Debug.Log($" [x] Received {message}");
+
+                var startSessionMessage = JsonConvert.DeserializeObject<StartSessionMessage>(message);
+                patient = startSessionMessage.Patient;
+                sessionConfiguration = startSessionMessage.SessionConfiguration;
+
                 readMessage = true;
             }
             catch (Exception) { }
@@ -70,6 +74,7 @@ public class GameManager : MonoBehaviour
     void RestartGame()
     {
         board.text = "Welcome to Virtual Classroom\nWaiting for the screening to start";
+        InitLettrsData();
         readMessage = false;
         stopGame = false;
         patient = new Patient();
@@ -115,7 +120,7 @@ public class GameManager : MonoBehaviour
         session = new Session();
         yield return new WaitForSecondsRealtime(10f);//Decide the break time 
         board.text = "Second session is Starting...";
-        disturbances.StartDisturbances(5f);
+        disturbances.StartDisturbances(sessionConfiguration.DisturbanceTimeRangeMin, sessionConfiguration.DisturbanceTimeRangeMax);
         HeadTracker.StartTracking();
         yield return StartSession();
         disturbances.Stop();
@@ -138,7 +143,7 @@ public class GameManager : MonoBehaviour
 
     private IEnumerator StartSession()
     {
-        for (int i = 0; i < lettersData.Length; i++)
+        for (int i = 0; i < lettersDataList.Length; i++)  
         {
             if (stopGame)
             {
@@ -148,21 +153,21 @@ public class GameManager : MonoBehaviour
                 yield break;
             }
             pressed = false;
-            board.text = lettersData[i].ToString();
-            yield return new WaitForSecondsRealtime(lettersDelayInSec);
+            board.text = lettersDataList[i].ToString();
+            yield return new WaitForSecondsRealtime(sessionConfiguration.LettersDelayInSec);
             if (pressed && ShouldPress(i))
             {
-                time = (i * lettersDelayInSec) / (60 / 1000);
+                time = (i * sessionConfiguration.LettersDelayInSec) / (60 / 1000);
                 PressedAndshould.Add(time);
             }
             if (pressed && !ShouldPress(i))
             {
-                time = (i * lettersDelayInSec) / (60 / 1000);
+                time = (i * sessionConfiguration.LettersDelayInSec) / (60 / 1000);
                 PressedAndshouldNot.Add(time);
             }
             if (!pressed && ShouldPress(i))
             {
-                time = (i * lettersDelayInSec) / (60 / 1000);
+                time = (i * sessionConfiguration.LettersDelayInSec) / (60 / 1000);
                 NotPressedAndshould.Add(time);
             }
         }
@@ -170,6 +175,27 @@ public class GameManager : MonoBehaviour
 
     private bool ShouldPress(int i)
     {
-        return i != 0 && lettersData[i] == 'x' && lettersData[i - 1] == 'a';
+        return i != 0 && lettersDataList[i] == 'x' && lettersDataList[i - 1] == 'a';
+    }
+
+    private void InitLettrsData()
+    {
+        int lettersAmount = (int)Math.Ceiling((decimal)sessionConfiguration.SessionLengthInMin / sessionConfiguration.LettersDelayInSec);
+        for (int i =0; i< lettersAmount; i++)
+        {
+            lettersDataList[i] = (char)('A' + Random.Range(0, 26));
+        }
+        int[] indexesArray = new int[sessionConfiguration.AmountOfShouldPress];
+        for (int i = 0; i < sessionConfiguration.AmountOfShouldPress; i++)
+        {
+            int index = Random.Range(1, lettersAmount );
+            while (indexesArray.Contains(index) || indexesArray.Contains(index-1))
+            {
+                index = Random.Range(1, lettersAmount );
+            }
+            indexesArray[i] = index;
+            lettersDataList[index] = 'X';
+            lettersDataList[index-1] = 'A';
+        }
     }
 }
