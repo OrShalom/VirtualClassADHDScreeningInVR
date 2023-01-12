@@ -9,10 +9,10 @@ namespace Assets.Model
 {
     public class SessionConfiguration
     {
-        [JsonProperty("sessionLengthInMin")]
+        [JsonProperty("SessionLengthInMin")]
         public int SessionLengthInMin { get; set; } = 5;
 
-        [JsonProperty("lettersDelayInSecInSec")]
+        [JsonProperty("LettersDelayInSec")]
         public int LettersDelayInSec { get; set; } = 1;
 
         [JsonProperty("disturbanceTimeRangeMin")]
@@ -22,6 +22,6 @@ namespace Assets.Model
         public int DisturbanceTimeRangeMax { get; set; } = -1;
 
         [JsonProperty("amountOfShouldPress")]
-        public int AmountOfShouldPress { get; set; } = 10;
+        public int AmountOfShouldPress { get; set; } = 2;
     }
 }

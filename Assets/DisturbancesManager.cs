@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,35 +8,46 @@ using Random = UnityEngine.Random;
 
 public class DisturbancesManager : MonoBehaviour
 {
-    public List<AudioSource> Sounds;
+    List<AudioSource> Sounds;
     public List<Animator> Animations;
     private (float min, float max) epochRange;
     private float epoch;
     private int soundIndex = 0;
     private int animationIndex = 0;
     bool stop = false;
-    public List<int> TimesOfDisturbances;
+    [NonSerialized]
+    public List<List<int>> TimesOfDisturbances;
+    [NonSerialized]
+    public List<string> disturbancesTypes;
 
-    IEnumerator AudioCoroutine()
+    private void Start()
+    {
+        Sounds = new List<AudioSource>(GetComponents<AudioSource>());
+    }
+
+    IEnumerator DisturbancesCoroutine()
     {
         while (!stop)
         {
             Random.InitState(System.DateTime.Now.Millisecond);
             epoch = Random.Range(epochRange.min, epochRange.max + 1);
 
-            //Console.WriteLine(epoch);
             if (TimesOfDisturbances.Count > 0)
             {
-                TimesOfDisturbances.Add(TimesOfDisturbances[TimesOfDisturbances.Count - 1] + (int)epoch);
+                int lastDisturbanceTime = TimesOfDisturbances.Last().Last();// The last time of the last disturbance.
+
+                TimesOfDisturbances.Add(new List<int>() { lastDisturbanceTime + (int)epoch });
             }
-            else TimesOfDisturbances.Add((int)epoch);
-            yield return new WaitForSecondsRealtime(epoch-1);
+            else TimesOfDisturbances.Add(new List<int>() { (int)epoch });
+            yield return new WaitForSecondsRealtime(epoch - 1);
             if (!stop)
             {
                 var disturbanceLength = PlayDisturbance();
+                List<int> currentDisturbTimes = TimesOfDisturbances.Last();
+                int firstTimeOfDist = currentDisturbTimes.Last();
                 for (int i = 1; i < disturbanceLength; i++)
                 {
-                    TimesOfDisturbances.Add(TimesOfDisturbances[TimesOfDisturbances.Count - 1] + 1);
+                    currentDisturbTimes.Add(firstTimeOfDist + i);
                 }
             }
             else if (TimesOfDisturbances.Count > 0)
@@ -56,8 +68,16 @@ public class DisturbancesManager : MonoBehaviour
     internal int PlayDisturbance()
     {
         bool isSound = Random.Range(0, 2) == 0;
-        if (isSound) return PlaySound();
-        else return PlayAnimation();
+        if (isSound)
+        {
+            disturbancesTypes.Add("Audio");
+            return PlaySound();
+        }
+        else
+        {
+            disturbancesTypes.Add("Visual");
+            return PlayAnimation();
+        }
     }
 
     private int PlayAnimation()
@@ -73,8 +93,9 @@ public class DisturbancesManager : MonoBehaviour
         epochRange.min = minEpoch;
         epochRange.max = maxEpoch != -1 ? maxEpoch : minEpoch;
         stop = false;
-        TimesOfDisturbances = new List<int>();
-        StartCoroutine(AudioCoroutine());
+        TimesOfDisturbances = new List<List<int>>();
+        disturbancesTypes = new List<string>();
+        StartCoroutine(DisturbancesCoroutine());
     }
 
     internal void Stop()

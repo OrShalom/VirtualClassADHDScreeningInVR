@@ -31,7 +31,6 @@ public class GameManager : MonoBehaviour
     SessionConfiguration sessionConfiguration;
 
 
-    // Start is called before the first frame update
     void Start()
     {
         button.ButtonPress.AddListener(() =>
@@ -52,7 +51,7 @@ public class GameManager : MonoBehaviour
             try
             {
                 var message = System.Text.Encoding.UTF8.GetString(ea.Body.ToArray());
-                Debug.Log($" [x] Received {message}");
+                Debug.Log($" START MESSAGE [x] Received {message}");
 
                 var startSessionMessage = JsonConvert.DeserializeObject<StartSessionMessage>(message);
                 patient = startSessionMessage.Patient;
@@ -66,15 +65,21 @@ public class GameManager : MonoBehaviour
         {
             var message = System.Text.Encoding.UTF8.GetString(ea.Body.ToArray());
 
-            Debug.Log($" [x] Received {message}");
+            Debug.Log($" STOP MESSAGE [x] Received {message}");
             stopGame = true;
         });
+    }
+
+    private void OnApplicationQuit()
+    {
+        startScreeningQueue.Dispose();
+        stopScreeningQueue.Dispose();
+        finishScreeningQueue.Dispose();
     }
 
     void RestartGame()
     {
         board.text = "Welcome to Virtual Classroom\nWaiting for the screening to start";
-        InitLettrsData();
         readMessage = false;
         stopGame = false;
         patient = new Patient();
@@ -104,29 +109,44 @@ public class GameManager : MonoBehaviour
 
     IEnumerator GameCoroutine()
     {
+        InitLettrsData();
         Report report = new Report
         {
             Time = DateTime.Now,
             PatientId = patient.EmailAddress
         };
-        Session session= new Session();
         board.text = "Lets Start...";
-        yield return new WaitForSecondsRealtime(4);
+        yield return new WaitForSecondsRealtime(3);
         HeadTracker.StartTracking();
-        yield return StartSession();
-        UpdateSessionData(session);
-        report.SessionWithoutDisturbances = session;
-        board.text = "First session has done";
-        session = new Session();
+        yield return SessionCoroutine();
+        Session sessionWithout = new Session();
+        UpdateSessionData(sessionWithout);
+        report.SessionWithoutDisturbances = sessionWithout;
+        board.text = "First session is done";
+        InitLettrsData();
         yield return new WaitForSecondsRealtime(10f);//Decide the break time 
         board.text = "Second session is Starting...";
+        yield return new WaitForSecondsRealtime(3);
         disturbances.StartDisturbances(sessionConfiguration.DisturbanceTimeRangeMin, sessionConfiguration.DisturbanceTimeRangeMax);
         HeadTracker.StartTracking();
-        yield return StartSession();
+        yield return SessionCoroutine();
         disturbances.Stop();
-        UpdateSessionData(session);
-        report.SessionWithDisturbances = session;
-        board.text = "Second session has done";
+        Session sessionWith = new Session();
+        UpdateSessionData(sessionWith);
+        report.SessionWithDisturbances = sessionWith;
+        try
+        {
+            for (int i = 0; i < disturbances.TimesOfDisturbances.Count; i++)
+            {
+                report.DisturbancesMetadata.Add(new DisturbanceMetadata(disturbances.TimesOfDisturbances[i], disturbances.disturbancesTypes[i]));
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.Log(e.ToString());
+        }
+        board.text = "Second session is done";
+        yield return new WaitForSecondsRealtime(2);
         finishScreeningQueue.SendMessageToQ(JsonConvert.SerializeObject(report));
         board.text = "Screening Has Finished";
         yield return new WaitForSecondsRealtime(3f);
@@ -136,18 +156,19 @@ public class GameManager : MonoBehaviour
     private void UpdateSessionData(Session session)
     {
         session.HeadRotation = HeadTracker.StopTracking();
+        session.lettersDataList = lettersDataList;
         session.PressedAndshould = PressedAndshould;
         session.NotPressedAndshould = NotPressedAndshould;
         session.PressedAndshouldNot = PressedAndshouldNot;
     }
 
-    private IEnumerator StartSession()
+    private IEnumerator SessionCoroutine()
     {
         for (int i = 0; i < lettersDataList.Length; i++)  
         {
             if (stopGame)
             {
-                board.text = "Screening Stopped";
+                board.text = "Screening is stopped";
                 yield return new WaitForSecondsRealtime(4);
                 RestartGame();
                 yield break;
@@ -157,17 +178,17 @@ public class GameManager : MonoBehaviour
             yield return new WaitForSecondsRealtime(sessionConfiguration.LettersDelayInSec);
             if (pressed && ShouldPress(i))
             {
-                time = (i * sessionConfiguration.LettersDelayInSec) / (60 / 1000);
+                time = ((i+1) * sessionConfiguration.LettersDelayInSec);
                 PressedAndshould.Add(time);
             }
             if (pressed && !ShouldPress(i))
             {
-                time = (i * sessionConfiguration.LettersDelayInSec) / (60 / 1000);
+                time = ((i+1) * sessionConfiguration.LettersDelayInSec);
                 PressedAndshouldNot.Add(time);
             }
             if (!pressed && ShouldPress(i))
             {
-                time = (i * sessionConfiguration.LettersDelayInSec) / (60 / 1000);
+                time = ((i+1) * sessionConfiguration.LettersDelayInSec);
                 NotPressedAndshould.Add(time);
             }
         }
@@ -175,21 +196,23 @@ public class GameManager : MonoBehaviour
 
     private bool ShouldPress(int i)
     {
-        return i != 0 && lettersDataList[i] == 'x' && lettersDataList[i - 1] == 'a';
+        return i != 0 && lettersDataList[i] == 'X' && lettersDataList[i - 1] == 'A';
     }
 
     private void InitLettrsData()
     {
-        int lettersAmount = (int)Math.Ceiling((decimal)sessionConfiguration.SessionLengthInMin / sessionConfiguration.LettersDelayInSec);
+        int lettersAmount = (int)Math.Ceiling((decimal)(sessionConfiguration.SessionLengthInMin*60) / sessionConfiguration.LettersDelayInSec);
+        lettersDataList = new char[lettersAmount];
         for (int i =0; i< lettersAmount; i++)
         {
             lettersDataList[i] = (char)('A' + Random.Range(0, 26));
         }
         int[] indexesArray = new int[sessionConfiguration.AmountOfShouldPress];
+        Array.Fill(indexesArray,-1);
         for (int i = 0; i < sessionConfiguration.AmountOfShouldPress; i++)
         {
             int index = Random.Range(1, lettersAmount );
-            while (indexesArray.Contains(index) || indexesArray.Contains(index-1))
+            while (indexesArray.Contains(index) || indexesArray.Contains(index+1) || indexesArray.Contains(index-1))
             {
                 index = Random.Range(1, lettersAmount );
             }

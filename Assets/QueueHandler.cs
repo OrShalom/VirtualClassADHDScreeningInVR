@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -7,9 +8,10 @@ public class QueueHandler : IDisposable
     private readonly string queueName;
     private readonly IConnection connection;
     private readonly IModel channel;
-
+    private List<(EventingBasicConsumer consumer, EventHandler<BasicDeliverEventArgs> handler)> conumersHandler;
     public QueueHandler(string queueName)
     {
+        conumersHandler = new List<(EventingBasicConsumer consumer, EventHandler<BasicDeliverEventArgs> handler)>();
         this.queueName = queueName;
         // Create a connection factory and set the connection parameters
         var factory = new ConnectionFactory();
@@ -23,6 +25,7 @@ public class QueueHandler : IDisposable
 
     public void Dispose()
     {
+        conumersHandler.ForEach(x => x.consumer.Received -= x.handler);
         connection.Dispose();
         channel.Dispose();
     }
@@ -56,6 +59,7 @@ public class QueueHandler : IDisposable
         // Set up a consumer to handle incoming messages
         var consumer = new EventingBasicConsumer(channel);
         consumer.Received += handler;
+        conumersHandler.Add((consumer, handler));
         channel.BasicConsume(queue: queueName,
                              autoAck: true,
                              consumer: consumer);
