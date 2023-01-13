@@ -31,17 +31,12 @@ public class DisturbancesManager : MonoBehaviour
         {
             Random.InitState(System.DateTime.Now.Millisecond);
             epoch = Random.Range(epochRange.min, epochRange.max + 1);
-
-            if (TimesOfDisturbances.Count > 0)
-            {
-                int lastDisturbanceTime = TimesOfDisturbances.Last().Last();// The last time of the last disturbance.
-
-                TimesOfDisturbances.Add(new List<int>() { lastDisturbanceTime + (int)epoch });
-            }
-            else TimesOfDisturbances.Add(new List<int>() { (int)epoch });
             yield return new WaitForSecondsRealtime(epoch - 1);
             if (!stop)
             {
+                int? lastDisturbanceTime = TimesOfDisturbances.LastOrDefault()?.LastOrDefault();// The last time of the last disturbance.
+                TimesOfDisturbances.Add(new List<int>() { (lastDisturbanceTime ?? 0) + (int)epoch });
+
                 var disturbanceLength = PlayDisturbance();
                 List<int> currentDisturbTimes = TimesOfDisturbances.Last();
                 int firstTimeOfDist = currentDisturbTimes.Last();
@@ -49,10 +44,6 @@ public class DisturbancesManager : MonoBehaviour
                 {
                     currentDisturbTimes.Add(firstTimeOfDist + i);
                 }
-            }
-            else if (TimesOfDisturbances.Count > 0)
-            {
-                TimesOfDisturbances.RemoveAt(TimesOfDisturbances.Count - 1);
             }
         }
     }
@@ -68,6 +59,7 @@ public class DisturbancesManager : MonoBehaviour
     internal int PlayDisturbance()
     {
         bool isSound = Random.Range(0, 2) == 0;
+
         if (isSound)
         {
             disturbancesTypes.Add("Audio");
@@ -85,7 +77,7 @@ public class DisturbancesManager : MonoBehaviour
         Random.InitState(DateTime.Now.Millisecond);
         animationIndex = Random.Range(0, Animations.Count);
         Animations[animationIndex].Play("StartAnimate");
-        return (int)Math.Max(1, Math.Ceiling(Animations[animationIndex].GetCurrentAnimatorStateInfo(0).length));
+        return (int)Math.Max(1, Math.Ceiling(Animations[animationIndex].runtimeAnimatorController.animationClips[0].length));
     }
 
     internal void StartDisturbances(float minEpoch, float maxEpoch = -1f)

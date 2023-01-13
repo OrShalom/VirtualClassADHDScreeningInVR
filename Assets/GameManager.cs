@@ -181,22 +181,28 @@ public class GameManager : MonoBehaviour
             pressed = false;
             board.text = lettersDataList[i].ToString();
             bool shouldPress = ShouldPress(i);
+            bool doneWithLetter= false;
             for (int j = 0; j < sessionConfiguration.LettersDelayInSec; j++)
             {
                 yield return new WaitForSecondsRealtime(1);
                 int currentTime = i * sessionConfiguration.LettersDelayInSec + j;
-                if (pressed && shouldPress)
+                if (pressed && !doneWithLetter)
                 {
-                    PressedAndshould.Add(currentTime);
+                    if (shouldPress)
+                    {
+                        PressedAndshould.Add(currentTime);
+                        doneWithLetter = true;
+                    }
+                    else
+                    {
+                        PressedAndshouldNot.Add(currentTime);
+                    }
+
                 }
-                else if (pressed && !shouldPress)
-                {
-                    PressedAndshouldNot.Add(currentTime);
-                }
-                else if (!pressed && shouldPress)
-                {
-                    NotPressedAndshould.Add(currentTime);
-                }
+            }
+            if (!pressed && shouldPress)
+            {
+                NotPressedAndshould.Add(i * sessionConfiguration.LettersDelayInSec);
             }
         }
     }
@@ -232,7 +238,7 @@ public class GameManager : MonoBehaviour
         {
             int X_index = indexesArray[i];
             var times = new List<int>();
-            for (int j = 0; j < times.Count; j++)
+            for (int j = 0; j < sessionConfiguration.LettersDelayInSec; j++)
             {
                 times.Add(X_index * sessionConfiguration.LettersDelayInSec + j);
             }
