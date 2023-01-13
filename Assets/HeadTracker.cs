@@ -12,7 +12,7 @@ public class HeadTracker : MonoBehaviour
     public void StartTracking()
     {
         stop = false;
-        trackedHeadTransform.Clear();
+        trackedHeadTransform = new List<Vector>();
         StartCoroutine(TrackCoroutine());
     }
 

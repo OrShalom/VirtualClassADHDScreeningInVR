@@ -18,10 +18,11 @@ public class GameManager : MonoBehaviour
     public HeadTracker HeadTracker;
     private bool pressed;
     char[] lettersDataList;
-    float time;
-    List<float> PressedAndshould;
-    List<float> PressedAndshouldNot;
-    List<float> NotPressedAndshould;
+    int time;
+    List<int> PressedAndshould;
+    List<int> PressedAndshouldNot;
+    List<int> NotPressedAndshould;
+    List<List<int>> TimesOfShouldPress;
     QueueHandler startScreeningQueue;
     QueueHandler stopScreeningQueue;
     QueueHandler finishScreeningQueue;
@@ -29,7 +30,6 @@ public class GameManager : MonoBehaviour
     bool stopGame = false;
     Patient patient;
     SessionConfiguration sessionConfiguration;
-
 
     void Start()
     {
@@ -83,9 +83,9 @@ public class GameManager : MonoBehaviour
         readMessage = false;
         stopGame = false;
         patient = new Patient();
-        PressedAndshould = new List<float>();
-        PressedAndshouldNot = new List<float>();
-        NotPressedAndshould = new List<float>();
+        PressedAndshould = new List<int>();
+        PressedAndshouldNot = new List<int>();
+        NotPressedAndshould = new List<int>();
         disturbances.Stop();
         HeadTracker.StopTracking();
     }
@@ -112,7 +112,7 @@ public class GameManager : MonoBehaviour
         InitLettrsData();
         Report report = new Report
         {
-            Time = DateTime.Now,
+            Time = DateTime.Now.ToShortDateString() + " | " + DateTime.Now.ToShortTimeString(),
             PatientId = patient.EmailAddress
         };
         board.text = "Lets Start...";
@@ -160,11 +160,15 @@ public class GameManager : MonoBehaviour
         session.PressedAndshould = PressedAndshould;
         session.NotPressedAndshould = NotPressedAndshould;
         session.PressedAndshouldNot = PressedAndshouldNot;
+        session.TimesOfShouldPress = TimesOfShouldPress;
     }
 
     private IEnumerator SessionCoroutine()
     {
-        for (int i = 0; i < lettersDataList.Length; i++)  
+        PressedAndshould = new List<int>();
+        PressedAndshouldNot = new List<int>();
+        NotPressedAndshould = new List<int>();
+        for (int i = 0; i < lettersDataList.Length; i++)
         {
             if (stopGame)
             {
@@ -175,20 +179,21 @@ public class GameManager : MonoBehaviour
             }
             pressed = false;
             board.text = lettersDataList[i].ToString();
+            bool shouldPress = ShouldPress(i);
             yield return new WaitForSecondsRealtime(sessionConfiguration.LettersDelayInSec);
-            if (pressed && ShouldPress(i))
+            if (pressed && shouldPress)
             {
-                time = ((i+1) * sessionConfiguration.LettersDelayInSec);
+                time = ((i + 1) * sessionConfiguration.LettersDelayInSec);
                 PressedAndshould.Add(time);
             }
-            if (pressed && !ShouldPress(i))
+            if (pressed && !shouldPress)
             {
-                time = ((i+1) * sessionConfiguration.LettersDelayInSec);
+                time = ((i + 1) * sessionConfiguration.LettersDelayInSec);
                 PressedAndshouldNot.Add(time);
             }
-            if (!pressed && ShouldPress(i))
+            if (!pressed && shouldPress)
             {
-                time = ((i+1) * sessionConfiguration.LettersDelayInSec);
+                time = ((i + 1) * sessionConfiguration.LettersDelayInSec);
                 NotPressedAndshould.Add(time);
             }
         }
@@ -201,24 +206,35 @@ public class GameManager : MonoBehaviour
 
     private void InitLettrsData()
     {
-        int lettersAmount = (int)Math.Ceiling((decimal)(sessionConfiguration.SessionLengthInMin*60) / sessionConfiguration.LettersDelayInSec);
+        int lettersAmount = (int)Math.Ceiling((decimal)(sessionConfiguration.SessionLengthInMin * 60) / sessionConfiguration.LettersDelayInSec);
         lettersDataList = new char[lettersAmount];
-        for (int i =0; i< lettersAmount; i++)
+        for (int i = 0; i < lettersAmount; i++)
         {
             lettersDataList[i] = (char)('A' + Random.Range(0, 26));
         }
         int[] indexesArray = new int[sessionConfiguration.AmountOfShouldPress];
-        Array.Fill(indexesArray,-1);
+        Array.Fill(indexesArray, -1);
         for (int i = 0; i < sessionConfiguration.AmountOfShouldPress; i++)
         {
-            int index = Random.Range(1, lettersAmount );
-            while (indexesArray.Contains(index) || indexesArray.Contains(index+1) || indexesArray.Contains(index-1))
+            int index = Random.Range(1, lettersAmount);
+            while (indexesArray.Contains(index) || indexesArray.Contains(index + 1) || indexesArray.Contains(index - 1))
             {
-                index = Random.Range(1, lettersAmount );
+                index = Random.Range(1, lettersAmount);
             }
             indexesArray[i] = index;
             lettersDataList[index] = 'X';
-            lettersDataList[index-1] = 'A';
+            lettersDataList[index - 1] = 'A';
+        }
+        TimesOfShouldPress = new List<List<int>>();
+        for (int i = 0; i < indexesArray.Length; i++)
+        {
+            int X_index = indexesArray[i];
+            var times = new List<int>();
+            for (int j = 0; j < times.Count; j++)
+            {
+                times.Add(X_index * sessionConfiguration.LettersDelayInSec + j);
+            }
+            TimesOfShouldPress.Add(times);
         }
     }
 }
