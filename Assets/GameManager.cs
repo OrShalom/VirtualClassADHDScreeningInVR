@@ -18,7 +18,6 @@ public class GameManager : MonoBehaviour
     public HeadTracker HeadTracker;
     private bool pressed;
     char[] lettersDataList;
-    int time;
     List<int> PressedAndshould;
     List<int> PressedAndshouldNot;
     List<int> NotPressedAndshould;
@@ -83,11 +82,16 @@ public class GameManager : MonoBehaviour
         readMessage = false;
         stopGame = false;
         patient = new Patient();
+        disturbances.Stop();
+        HeadTracker.StopTracking();
+    }
+
+    private void RestartSession()
+    {
+        InitLettrsData();
         PressedAndshould = new List<int>();
         PressedAndshouldNot = new List<int>();
         NotPressedAndshould = new List<int>();
-        disturbances.Stop();
-        HeadTracker.StopTracking();
     }
 
     // Update is called once per frame
@@ -109,7 +113,8 @@ public class GameManager : MonoBehaviour
 
     IEnumerator GameCoroutine()
     {
-        InitLettrsData();
+        // Restart the first session
+        RestartSession();
         Report report = new Report
         {
             Time = DateTime.Now.ToShortDateString() + " | " + DateTime.Now.ToShortTimeString(),
@@ -117,37 +122,36 @@ public class GameManager : MonoBehaviour
         };
         board.text = "Lets Start...";
         yield return new WaitForSecondsRealtime(3);
+        // Start the first session:
         HeadTracker.StartTracking();
         yield return SessionCoroutine();
+        // Update report with first session data:
         Session sessionWithout = new Session();
         UpdateSessionData(sessionWithout);
         report.SessionWithoutDisturbances = sessionWithout;
         board.text = "First session is done";
-        InitLettrsData();
+        // Restart the second session
+        RestartSession();
         yield return new WaitForSecondsRealtime(10f);//Decide the break time 
         board.text = "Second session is Starting...";
         yield return new WaitForSecondsRealtime(3);
+        // Start the second session:
         disturbances.StartDisturbances(sessionConfiguration.DisturbanceTimeRangeMin, sessionConfiguration.DisturbanceTimeRangeMax);
         HeadTracker.StartTracking();
         yield return SessionCoroutine();
         disturbances.Stop();
+        board.text = "Second session is done";
+        // Update report with second session data:
         Session sessionWith = new Session();
         UpdateSessionData(sessionWith);
         report.SessionWithDisturbances = sessionWith;
-        try
+
+        for (int i = 0; i < disturbances.TimesOfDisturbances.Count; i++)
         {
-            for (int i = 0; i < disturbances.TimesOfDisturbances.Count; i++)
-            {
-                report.DisturbancesMetadata.Add(new DisturbanceMetadata(disturbances.TimesOfDisturbances[i], disturbances.disturbancesTypes[i]));
-            }
+            report.DisturbancesMetadata.Add(new DisturbanceMetadata(disturbances.TimesOfDisturbances[i], disturbances.disturbancesTypes[i]));
         }
-        catch (Exception e)
-        {
-            Debug.Log(e.ToString());
-        }
-        board.text = "Second session is done";
-        yield return new WaitForSecondsRealtime(2);
         finishScreeningQueue.SendMessageToQ(JsonConvert.SerializeObject(report));
+        yield return new WaitForSecondsRealtime(2);
         board.text = "Screening Has Finished";
         yield return new WaitForSecondsRealtime(3f);
         RestartGame();
@@ -165,9 +169,6 @@ public class GameManager : MonoBehaviour
 
     private IEnumerator SessionCoroutine()
     {
-        PressedAndshould = new List<int>();
-        PressedAndshouldNot = new List<int>();
-        NotPressedAndshould = new List<int>();
         for (int i = 0; i < lettersDataList.Length; i++)
         {
             if (stopGame)
@@ -180,21 +181,22 @@ public class GameManager : MonoBehaviour
             pressed = false;
             board.text = lettersDataList[i].ToString();
             bool shouldPress = ShouldPress(i);
-            yield return new WaitForSecondsRealtime(sessionConfiguration.LettersDelayInSec);
-            if (pressed && shouldPress)
+            for (int j = 0; j < sessionConfiguration.LettersDelayInSec; j++)
             {
-                time = ((i + 1) * sessionConfiguration.LettersDelayInSec);
-                PressedAndshould.Add(time);
-            }
-            if (pressed && !shouldPress)
-            {
-                time = ((i + 1) * sessionConfiguration.LettersDelayInSec);
-                PressedAndshouldNot.Add(time);
-            }
-            if (!pressed && shouldPress)
-            {
-                time = ((i + 1) * sessionConfiguration.LettersDelayInSec);
-                NotPressedAndshould.Add(time);
+                yield return new WaitForSecondsRealtime(1);
+                int currentTime = i * sessionConfiguration.LettersDelayInSec + j;
+                if (pressed && shouldPress)
+                {
+                    PressedAndshould.Add(currentTime);
+                }
+                else if (pressed && !shouldPress)
+                {
+                    PressedAndshouldNot.Add(currentTime);
+                }
+                else if (!pressed && shouldPress)
+                {
+                    NotPressedAndshould.Add(currentTime);
+                }
             }
         }
     }
