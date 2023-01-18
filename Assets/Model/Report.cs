@@ -7,6 +7,8 @@ namespace Assets.Model
     {
         public string Time { get; set; }
         public string PatientId { get; set; }
+        public string PatientName { get; set; }
+        public SessionConfiguration SessionConfiguration { get; set; }
         public Session SessionWithoutDisturbances { get; set; }
         public Session SessionWithDisturbances { get; set; }
         public List<DisturbanceMetadata> DisturbancesMetadata { get; set; }

@@ -53,6 +53,7 @@ public class DisturbancesManager : MonoBehaviour
         Random.InitState(DateTime.Now.Millisecond);
         soundIndex = Random.Range(0, Sounds.Count);
         Sounds[soundIndex].Play();
+        disturbancesTypes[disturbancesTypes.Count - 1] = disturbancesTypes.Last() + " " + Sounds[soundIndex].clip.name;
         return (int)Math.Max(1, Math.Ceiling(Sounds[soundIndex].clip.length));
     }
 
@@ -77,6 +78,7 @@ public class DisturbancesManager : MonoBehaviour
         Random.InitState(DateTime.Now.Millisecond);
         animationIndex = Random.Range(0, Animations.Count);
         Animations[animationIndex].Play("StartAnimate");
+        disturbancesTypes[disturbancesTypes.Count-1] = disturbancesTypes.Last() + " " + Animations[animationIndex].runtimeAnimatorController.animationClips[0].name;
         return (int)Math.Max(1, Math.Ceiling(Animations[animationIndex].runtimeAnimatorController.animationClips[0].length));
     }
 

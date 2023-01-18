@@ -25,8 +25,10 @@ public class GameManager : MonoBehaviour
     QueueHandler startScreeningQueue;
     QueueHandler stopScreeningQueue;
     QueueHandler finishScreeningQueue;
+    QueueHandler errorsQueue;
     bool readMessage = false;
     bool stopGame = false;
+    bool isGameRunning = false;
     Patient patient;
     SessionConfiguration sessionConfiguration;
 
@@ -45,6 +47,7 @@ public class GameManager : MonoBehaviour
         startScreeningQueue = new QueueHandler("StartScreening");
         stopScreeningQueue = new QueueHandler("StopScreening");
         finishScreeningQueue = new QueueHandler("FinishScreening");
+        errorsQueue = new QueueHandler("ErrorsQueue");
         startScreeningQueue.SubscribeToQueue((model, ea) =>
         {
             try
@@ -79,11 +82,12 @@ public class GameManager : MonoBehaviour
     void RestartGame()
     {
         board.text = "Welcome to Virtual Classroom\nWaiting for the screening to start";
-        readMessage = false;
         stopGame = false;
         patient = new Patient();
         disturbances.Stop();
         HeadTracker.StopTracking();
+        readMessage = false;
+        isGameRunning = false;
     }
 
     private void RestartSession()
@@ -97,11 +101,12 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (readMessage)
+        if (readMessage && !isGameRunning)
         {
             board.text = "Press the button when you are ready!";
             button.ButtonPress.AddListener(StartGameAsync);
             readMessage = false;
+            isGameRunning = true;
         }
     }
 
@@ -114,43 +119,83 @@ public class GameManager : MonoBehaviour
     IEnumerator GameCoroutine()
     {
         // Restart the first session
-        RestartSession();
-        Report report = new Report
+        Report report;
+        try
         {
-            Time = DateTime.Now.ToShortDateString() + " | " + DateTime.Now.ToShortTimeString(),
-            PatientId = patient.EmailAddress
-        };
-        board.text = "Lets Start...";
+            RestartSession();
+            report = new Report
+            {
+                Time = DateTime.Now.ToShortDateString() + " | " + DateTime.Now.ToShortTimeString(),
+                PatientId = patient.EmailAddress,
+                PatientName = patient.FirstName + " " + patient.LastName,
+                SessionConfiguration = sessionConfiguration
+            };
+            board.text = "Lets Start...";
+        }
+        catch(Exception exc)
+        {
+            errorsQueue.SendMessageToQ(exc.ToString());
+            RestartGame();
+            yield break;
+        }
         yield return new WaitForSecondsRealtime(3);
         // Start the first session:
         HeadTracker.StartTracking();
         yield return SessionCoroutine();
-        // Update report with first session data:
-        Session sessionWithout = new Session();
-        UpdateSessionData(sessionWithout);
-        report.SessionWithoutDisturbances = sessionWithout;
-        board.text = "First session is done";
-        // Restart the second session
-        RestartSession();
+        try
+        {
+           
+            // Update report with first session data:
+            Session sessionWithout = new Session();
+            UpdateSessionData(sessionWithout);
+            report.SessionWithoutDisturbances = sessionWithout;
+            board.text = "First session is done";
+            // Restart the second session
+            RestartSession();
+        }
+        catch (Exception exc)
+        {
+            errorsQueue.SendMessageToQ(exc.ToString());
+            RestartGame();
+            yield break;
+        }
         yield return new WaitForSecondsRealtime(10f);//Decide the break time 
         board.text = "Second session is Starting...";
         yield return new WaitForSecondsRealtime(3);
-        // Start the second session:
-        disturbances.StartDisturbances(sessionConfiguration.DisturbanceTimeRangeMin, sessionConfiguration.DisturbanceTimeRangeMax);
-        HeadTracker.StartTracking();
-        yield return SessionCoroutine();
-        disturbances.Stop();
-        board.text = "Second session is done";
-        // Update report with second session data:
-        Session sessionWith = new Session();
-        UpdateSessionData(sessionWith);
-        report.SessionWithDisturbances = sessionWith;
-
-        for (int i = 0; i < disturbances.TimesOfDisturbances.Count; i++)
+        try
         {
-            report.DisturbancesMetadata.Add(new DisturbanceMetadata(disturbances.TimesOfDisturbances[i], disturbances.disturbancesTypes[i]));
+            // Start the second session:
+            disturbances.StartDisturbances(sessionConfiguration.DisturbanceTimeRangeMin, sessionConfiguration.DisturbanceTimeRangeMax);
+            HeadTracker.StartTracking();
         }
-        finishScreeningQueue.SendMessageToQ(JsonConvert.SerializeObject(report));
+        catch (Exception exc)
+        {
+            errorsQueue.SendMessageToQ(exc.ToString());
+            RestartGame();
+            yield break;
+        }
+        yield return SessionCoroutine();
+        try
+        {
+            disturbances.Stop();
+            board.text = "Second session is done";
+            // Update report with second session data:
+            Session sessionWith = new Session();
+            UpdateSessionData(sessionWith);
+            report.SessionWithDisturbances = sessionWith;
+
+            for (int i = 0; i < disturbances.TimesOfDisturbances.Count; i++)
+            {
+                report.DisturbancesMetadata.Add(new DisturbanceMetadata(disturbances.TimesOfDisturbances[i], disturbances.disturbancesTypes[i]));
+            }
+            finishScreeningQueue.SendMessageToQ(JsonConvert.SerializeObject(report));
+        }
+        catch (Exception exc)
+        {
+            errorsQueue.SendMessageToQ(exc.ToString());
+            RestartGame();
+            yield break;
+        }
         yield return new WaitForSecondsRealtime(2);
         board.text = "Screening Has Finished";
         yield return new WaitForSecondsRealtime(3f);
@@ -181,23 +226,21 @@ public class GameManager : MonoBehaviour
             pressed = false;
             board.text = lettersDataList[i].ToString();
             bool shouldPress = ShouldPress(i);
-            bool doneWithLetter= false;
             for (int j = 0; j < sessionConfiguration.LettersDelayInSec; j++)
             {
                 yield return new WaitForSecondsRealtime(1);
                 int currentTime = i * sessionConfiguration.LettersDelayInSec + j;
-                if (pressed && !doneWithLetter)
+                if (pressed)
                 {
                     if (shouldPress)
                     {
                         PressedAndshould.Add(currentTime);
-                        doneWithLetter = true;
                     }
                     else
                     {
                         PressedAndshouldNot.Add(currentTime);
                     }
-
+                    pressed = false;
                 }
             }
             if (!pressed && shouldPress)
